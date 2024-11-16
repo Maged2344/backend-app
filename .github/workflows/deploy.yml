@@ -7,7 +7,7 @@ on:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest 
 
     steps:
       # Step 1: Checkout the code
@@ -25,4 +25,4 @@ jobs:
             cd /var/www/backend
             git pull origin 11.x
             composer install --no-dev --optimize-autoloader
-            php artisan migrate --force
+            php artisan serve --host=0.0.0.0 --port=8000
