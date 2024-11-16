@@ -1,0 +1,92 @@
+name: Deploy Laravel Application to EC2
+
+on:
+  push:
+    branches:
+      - 11.x  # Trigger the deployment when changes are pushed to the main branch
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      # Step 1: Checkout the repository code
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      # Step 2: Set up SSH
+      - name: Set up SSH key
+        uses: webfactory/ssh-agent@v0.5.3
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      # Step 3: Deploy to EC2 instance and set up Laravel from scratch
+      - name: Set up and deploy Laravel app on EC2
+        run: |
+          # SSH into the EC2 instance and run commands
+          ssh -o StrictHostKeyChecking=no -i ${{ secrets.SSH_PRIVATE_KEY }} ${EC2_USER}@${{ secrets.BACKEND_SERVER_IP }} << 'EOF'
+            
+            # 1. Install necessary software (Git, Composer, PHP)
+            sudo apt update -y
+            sudo apt install git php php-cli php-mbstring php-xml php-curl php-bcmath php-json php-zip unzip -y
+            curl -sS https://getcomposer.org/installer | php
+            sudo mv composer.phar /usr/local/bin/composer
+            
+            # 2. Install Nginx (or Apache)
+            sudo apt install nginx -y
+
+            # 3. Clone the Laravel repository into the web root directory
+            cd /var/www
+            sudo git clone https://github.com/Maged2344/backend-app.git laravel-app
+
+            # 4. Change ownership of the directory to the web server user (www-data)
+            sudo chown -R www-data:www-data /var/www/laravel-app
+
+            # 5. Navigate to the project directory
+            cd /var/www/laravel-app
+
+            # 6. Install Composer dependencies
+            sudo composer install --no-interaction --prefer-dist --optimize-autoloader
+
+            # 7. Set up the .env file (replace these with your actual values)
+            cp .env.example .env
+            sudo php artisan key:generate
+
+            # You may want to add your specific environment variables, like DB_CONNECTION, etc.
+
+            # 8. Run database migrations
+            sudo php artisan migrate --force
+
+            # 9. Clear and cache configurations and routes
+            sudo php artisan config:cache
+            sudo php artisan route:cache
+            sudo php artisan view:cache
+
+            # 10. Set up Nginx configuration for Laravel (replace with your domain/path)
+            echo '
+            server {
+                listen 80;
+                server_name example.com;
+                root /var/www/laravel-app/public;
+
+                index index.php index.html index.htm;
+
+                location / {
+                    try_files $uri $uri/ /index.php?$query_string;
+                }
+
+                location ~ \.php$ {
+                    include snippets/fastcgi-php.conf;
+                    fastcgi_pass unix:/var/run/php/php7.4-fpm.sock;
+                    fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+                    include fastcgi_params;
+                }
+            }
+            ' | sudo tee /etc/nginx/sites-available/laravel-app
+
+            # Enable the new site configuration
+            sudo ln -s /etc/nginx/sites-available/laravel-app /etc/nginx/sites-enabled/
+
+            # 11. Restart Nginx to apply changes
+            sudo systemctl restart nginx
+
+          EOF
