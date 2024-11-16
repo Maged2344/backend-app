@@ -24,5 +24,6 @@ jobs:
           EC2_HOST: ${{ secrets.EC2_HOST }}
         run: |
           # Transfer the script to the EC2 instance
+                   
           # Run the script on the EC2 instance
-          ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST "bash ls"
+          ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST "bash /tmp/hello.sh"
