@@ -21,9 +21,9 @@ jobs:
       - name: Run Script on EC2
         env:
           EC2_USER: ${{ secrets.EC2_USER }}
-          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_HOST: ${{ secrets.BACKEND_SERVER_IP }}
         run: |
           # Transfer the script to the EC2 instance
                    
           # Run the script on the EC2 instance
-          ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST "bash /tmp/hello.sh"
+          ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST "echo "builiding ""
