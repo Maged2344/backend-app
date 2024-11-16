@@ -1,44 +1,46 @@
-# Use the official PHP image with Apache
-FROM php:8.2-apache
+# BUILD STAGE: Install Composer Dependencies
+FROM composer:2.4 AS build
+COPY . /app/
+WORKDIR /app
+RUN composer install --prefer-dist --no-dev --optimize-autoloader --no-interaction
 
-# Install system dependencies
+# PRODUCTION STAGE: PHP 8.2 with Apache
+FROM php:8.2-apache AS production
+
+# Set Environment Variables
+ENV APP_ENV=production
+ENV APP_DEBUG=false
+
+# Install Dependencies
 RUN apt-get update && apt-get install -y \
-    git \
-    unzip \
-    libzip-dev \
     libpng-dev \
-    libonig-dev \
-    libxml2-dev \
-    curl \
-    && docker-php-ext-install pdo pdo_mysql zip gd
+    libjpeg-dev \
+    libfreetype6-dev \
+    libpq-dev \
+    zip \
+    unzip \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install gd pdo pdo_mysql pdo_pgsql \
+    && docker-php-ext-enable opcache \
+    && rm -rf /var/lib/apt/lists/*
 
-# Enable Apache mod_rewrite
+# Configure Apache
+COPY docker/apache/000-default.conf /etc/apache2/sites-available/000-default.conf
 RUN a2enmod rewrite
 
-# Install Composer
-COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+# Copy Application Code and Set Permissions
+COPY --from=build /app /var/www/html
+COPY .env.example /var/www/html/.env
+RUN chmod -R 777 /var/www/html/storage /var/www/html/bootstrap/cache && \
+    chown -R www-data:www-data /var/www/html
 
-# Set the working directory
+# Cache Configuration and Optimize Laravel
 WORKDIR /var/www/html
 
-# Copy Laravel application files
-COPY . .
 
-# Set permissions for Laravel storage and cache
-RUN chown -R www-data:www-data /var/www/html \
-    && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
-    
-# Enable .htaccess overrides for Apache (in case mod_rewrite is enabled)
-RUN echo '<Directory /var/www/html>' > /etc/apache2/conf-available/laravel.conf \
-    && echo '    AllowOverride All' >> /etc/apache2/conf-available/laravel.conf \
-    && echo '</Directory>' >> /etc/apache2/conf-available/laravel.conf \
-    && a2enconf laravel
-
-# Install Laravel dependencies
-RUN composer install --no-dev --optimize-autoloader
-
-# Expose port 80
+# Expose Application Port
 EXPOSE 80
 
-# Start the Apache server
+# Start Apache Server
 CMD ["apache2-foreground"]
+
