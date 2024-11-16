@@ -1,0 +1,28 @@
+name: Backend Deployment
+
+on:
+  push:
+    branches:
+      - 11.x
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Checkout the code
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      # Step 2: Deploy to Backend Server
+      - name: Deploy to Backend Server
+        uses: appleboy/ssh-action@v0.1.6
+        with:
+          host: ${{ secrets.BACKEND_SERVER_IP }}
+          username: ubuntu
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /var/www/backend
+            git pull origin 11.x
+            composer install --no-dev --optimize-autoloader
+            php artisan migrate --force
