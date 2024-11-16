@@ -3,7 +3,7 @@ name: Run Script on EC2
 on:
   push:
     branches:
-      - main
+      - 11.x
 
 jobs:
   run-script-on-ec2:
