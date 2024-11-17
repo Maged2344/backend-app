@@ -1,4 +1,5 @@
 ![image](https://github.com/user-attachments/assets/9f5eecbc-4922-4028-873f-c85b47b34df5)
+![image](https://github.com/user-attachments/assets/aba9880c-1641-4116-b5a7-9e7ffbea05c3)
 
 Laravel Backend on EC2 with RDS
 This repository contains the backend of a Laravel application deployed on an EC2 instance and connected to an Amazon RDS instance. It provides the necessary setup instructions and configuration details for getting the environment up and running.
