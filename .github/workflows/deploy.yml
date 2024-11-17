@@ -9,40 +9,52 @@ jobs:
   run-script-on-ec2:
     runs-on: ubuntu-latest
     
-     steps:
+    steps:
+      # Step 1: Checkout the repository code
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      # Step 2: Set up SSH and Deploy to Backend Server
-       - name: Set up SSH Agent
+      # Step 2: Set up SSH Agent for accessing EC2
+      - name: Set up SSH Agent
         uses: webfactory/ssh-agent@v0.5.3
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
-       - name: Run Script on EC2
-         env:
-            EC2_USER: ${{ secrets.EC2_USER }}
-            EC2_HOST: ${{ secrets.BACKEND_SERVER_IP }}
-         script: |
+          
+      # Step 3: Run deployment script on the EC2 instance
+      - name: Run Script on EC2
+        env:
+          EC2_USER: ${{ secrets.EC2_USER }}
+          EC2_HOST: ${{ secrets.BACKEND_SERVER_IP }}
+        run: |
+          # SSH into the EC2 instance and run the deployment commands
+          ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST << 'EOF'
             # Navigate to the Laravel app directory
             cd /var/www/backend-app
 
             # Pull the latest changes from the '11.x' branch
+            echo "Pulling latest changes from the 11.x branch"
             git pull origin 11.x
 
-            # Install composer dependencies without development packages and optimize the autoloader
-            composer install --no-dev --optimize-autoloader
+            # Install Composer dependencies (without dev dependencies, and optimize the autoloader)
+            echo "Installing Composer dependencies"
+            sudo composer install --no-dev --optimize-autoloader
 
-            # Run database migrations (with --force for production)
-            php artisan migrate --force
+            # Run database migrations with --force for production
+            echo "Running database migrations"
+            sudo php artisan migrate --force
 
             # Clear and cache config, routes, and views
-            php artisan config:cache
-            php artisan route:cache
-            php artisan view:cache
+            echo "Caching Laravel configurations and routes"
+            sudo php artisan config:cache
+            sudo php artisan route:cache
+            sudo php artisan view:cache
 
-            # Set the correct file permissions for storage and cache directories
-            sudo chown -R www-data:www-data /var/www/your-laravel-app/storage /var/www/your-laravel-app/bootstrap/cache
-            sudo chmod -R 775 /var/www/your-laravel-app/storage /var/www/your-laravel-app/bootstrap/cache
+            # Set correct permissions for storage and cache directories
+            echo "Setting permissions for storage and cache"
+            sudo chown -R www-data:www-data /var/www/backend-app/storage /var/www/backend-app/bootstrap/cache
+            sudo chmod -R 775 /var/www/backend-app/storage /var/www/backend-app/bootstrap/cache
 
-            # Restart Nginx to reflect the new code (if using Nginx)
+            # Restart Nginx to apply the changes
+            echo "Restarting Nginx"
             sudo systemctl restart nginx
+          EOF
