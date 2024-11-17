@@ -53,5 +53,6 @@ jobs:
             echo "Setting permissions for storage and cache"
             sudo chown -R www-data:www-data /var/www/backend-app/storage /var/www/backend-app/bootstrap/cache
             sudo chmod -R 775 /var/www/backend-app/storage /var/www/backend-app/bootstrap/cache
+            php artisan serve --host=0.0.0.0 --port=8000
 
           EOF
