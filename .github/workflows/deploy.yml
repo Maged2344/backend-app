@@ -6,22 +6,23 @@ on:
       - 11.x
 
 jobs:
-  deploy:
-    runs-on: ubuntu-latest 
-
-    steps:
-      # Step 1: Checkout the code
-      - name: Checkout Code
+  run-script-on-ec2:
+    runs-on: ubuntu-latest
+    
+     steps:
+      - name: Checkout Repository
         uses: actions/checkout@v3
 
       # Step 2: Set up SSH and Deploy to Backend Server
-      - name: Deploy to Backend Server
-        uses: appleboy/ssh-action@v0.1.6
+       - name: Set up SSH Agent
+        uses: webfactory/ssh-agent@v0.5.3
         with:
-          host: ${{ secrets.BACKEND_SERVER_IP }}
-          username: ubuntu
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+       - name: Run Script on EC2
+         env:
+            EC2_USER: ${{ secrets.EC2_USER }}
+            EC2_HOST: ${{ secrets.BACKEND_SERVER_IP }}
+         script: |
             # Navigate to the Laravel app directory
             cd /var/www/backend-app
 
