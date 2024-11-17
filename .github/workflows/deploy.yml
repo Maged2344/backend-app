@@ -14,7 +14,7 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      # Step 2: Deploy to Backend Server
+      # Step 2: Set up SSH and Deploy to Backend Server
       - name: Deploy to Backend Server
         uses: appleboy/ssh-action@v0.1.6
         with:
@@ -22,5 +22,26 @@ jobs:
           username: ubuntu
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
+            # Navigate to the Laravel app directory
+            cd /var/www/backend-app
+
+            # Pull the latest changes from the '11.x' branch
             git pull origin 11.x
-            php artisan serve --host=0.0.0.0 --port=8000
+
+            # Install composer dependencies without development packages and optimize the autoloader
+            composer install --no-dev --optimize-autoloader
+
+            # Run database migrations (with --force for production)
+            php artisan migrate --force
+
+            # Clear and cache config, routes, and views
+            php artisan config:cache
+            php artisan route:cache
+            php artisan view:cache
+
+            # Set the correct file permissions for storage and cache directories
+            sudo chown -R www-data:www-data /var/www/your-laravel-app/storage /var/www/your-laravel-app/bootstrap/cache
+            sudo chmod -R 775 /var/www/your-laravel-app/storage /var/www/your-laravel-app/bootstrap/cache
+
+            # Restart Nginx to reflect the new code (if using Nginx)
+            sudo systemctl restart nginx
